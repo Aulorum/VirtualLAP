@@ -1,0 +1,9 @@
+[submodule "Desktop/Dependencies/glfw"]
+	path = Desktop/Dependencies/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "Global/glm"]
+	path = Global/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "Global/nanovg"]
+	path = Global/nanovg
+	url = https://github.com/memononen/nanovg.git
