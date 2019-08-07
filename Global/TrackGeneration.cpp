@@ -68,6 +68,13 @@ void TrackGeneration::Step(ImageAnalysisResult *input, TrackGeometry *output) {
 
 }
 
+/**
+ * Creates a Point to create a curve From one Point to another
+ * TODO: Something in Calculation might be wrong.
+ * @param trans
+ * @param distance
+ * @return a Point to give the tra a direction
+ */
 glm::vec3 TrackGeneration::moveAlongDirection(const glm::mat4 &trans, float distance) const {
     std::cout << "++++++++++++++++++++++++++++++" << std::endl;
     glm::vec4 latation = glm::vec4(distance, distance, distance, 1.f);

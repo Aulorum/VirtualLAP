@@ -164,6 +164,8 @@ void ImageAnalysis::_detectMarkers(cv::Mat &cameraImage, ImageAnalysisResult* re
         }
 
         cv::aruco::drawAxis(cameraImage, _camera, _distortion, rvec, tvecs[i], 20.f);
+
+        // Set marker for Track detection by getting Transformation Matrix in OpenGL form
         if (markerIds[i] < 3){
             std::cout << tvecs[i]<< " " << std::endl;
             cv::Mat rotation;
@@ -223,18 +225,31 @@ void ImageAnalysis::_sortMarkers(ImageAnalysisResult* result){
     }
 }
 
+/**
+ *  Sets the ViewMatrix (Projectionmatrix?) for OpenGL
+ * @param rvec0
+ * @param tvec0
+ * @param result
+ */
 void ImageAnalysis::_setViewMatrix(cv::Vec3d &rvec0, cv::Vec3d &tvec0, ImageAnalysisResult* result) {
     cv::Mat rotation;
     cv::Mat viewMatrix = cv::Mat::zeros(4, 4, CV_64FC1);
+    // Get RotationMatrix from Rodriguez Vector
     cv::Rodrigues(rvec0, rotation);
+
+    // set ViewMatrix in OpenCV form
     for (size_t j = 0; j < 3; ++j) {
         for (size_t k = 0; k < 3; ++k) {
             viewMatrix.at<double>(j, k) = rotation.at<double>(j, k);
         }
     }
+
+    result->ViewMatrix[0][3] = tvec0[0];
+    result->ViewMatrix[1][3] = tvec0[1];
+    result->ViewMatrix[2][3] = tvec0[2];
     viewMatrix.at<double>(3, 3) = 1.0f;
 
-
+    // Change Axis
     cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_64F);
     cvToGl.at<double>(0, 0) = 1.0f;
     cvToGl.at<double>(1, 1) = -1.0f; // Invert the y axis
@@ -242,6 +257,7 @@ void ImageAnalysis::_setViewMatrix(cv::Vec3d &rvec0, cv::Vec3d &tvec0, ImageAnal
     cvToGl.at<double>(3, 3) = 1.0f;
     viewMatrix = cvToGl * viewMatrix;
 
+    // Transpose to OpenGL form
     cv::Mat glViewMatrix = cv::Mat::zeros(4, 4, CV_64F);
     cv::transpose(viewMatrix, glViewMatrix);
 
@@ -250,8 +266,4 @@ void ImageAnalysis::_setViewMatrix(cv::Vec3d &rvec0, cv::Vec3d &tvec0, ImageAnal
             result->ViewMatrix[j][k] = glViewMatrix.at<double>(j, k);
         }
     }
-
-    result->ViewMatrix[3][0] = tvec0[0];
-    result->ViewMatrix[3][1] = -tvec0[1];
-    result->ViewMatrix[3][2] = -tvec0[2];
 }
