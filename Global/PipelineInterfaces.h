@@ -22,17 +22,14 @@ enum ImageAnalysisState {
 };
 struct MarkerInfo {
     int id;
-    glm::vec3 Location;
-    glm::vec3 Direction;
+    glm::mat4 Transformation;
     glm::vec3 Normal;
-    cv::Vec3d Location_CV;
-    cv::Vec3d Normal_CV;
-    cv::Vec3d Direction_CV;
 
 };
 struct ImageAnalysisResult {
     ImageAnalysisState State;
     double CalibrationError;
+    cv::Mat _camera;
 
     glm::mat4 ViewMatrix;
 
@@ -49,17 +46,6 @@ struct TrackGeometry {
     //ToDo(AMü): Should the generator already triangulate this?
     std::vector<TrackControlPoint> ControlPoints;
 };
-struct TrackControlPoint_CV{
-    cv::Vec3d Location_CV;
-    cv::Vec3d Normal_CV;
-    cv::Vec3d First_CV;
-    cv::Vec3d Next_CV;
-
-};
-struct TrackGeometry_CV{
-    std::vector<TrackControlPoint_CV> ControlPoints_CV;
-};
-
 
 struct GameState {
 

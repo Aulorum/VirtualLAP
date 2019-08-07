@@ -26,10 +26,10 @@ public:  //Public methods
     ImageAnalysis();
     ~ImageAnalysis();
 
-    void Step(const CameraImageData* cameraImage,ImageAnalysisResult* result);
+    void Step(const CameraImageData* cameraImage, ImageAnalysisResult* result);
     void ChangeState(const ImageAnalysisState& newstate);
 private: //Private methods
-    void _calibrate(cv::Mat& cameraImage);
+    void _calibrate(const cv::Mat& cameraImage, cv::Mat camera);
     void _detectMarkers(cv::Mat& cameraImage,ImageAnalysisResult* result);
     void _setViewMatrix(cv::Vec3d &rvec0, cv::Vec3d &tvec0, ImageAnalysisResult* result);
     void _sortMarkers(ImageAnalysisResult* result);

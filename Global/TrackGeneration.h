@@ -9,8 +9,7 @@ public:  //Public methods
     TrackGeneration();
     ~TrackGeneration();
 
-    void Step(ImageAnalysisResult* input, TrackGeometry* output, TrackGeometry_CV *output_CV);
+    void Step(ImageAnalysisResult* input, TrackGeometry* output);
 private: //Private methods
-    glm::vec3 moveAlongDirection(const glm::vec3& start, const glm::vec3& dir, float distance) const;
-    cv::Vec3d cv_moveAlongDirection(const cv::Vec3d& start, const cv::Vec3d& dir, float distance) const;
+    glm::vec3 moveAlongDirection(const glm::mat4 &trans,  float distance) const;
 };

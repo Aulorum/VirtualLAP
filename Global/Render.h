@@ -38,8 +38,8 @@ public:  //Public methods
     Render();
     ~Render();
     void Init();
-    void Step(CameraImageData* camImage, ImageAnalysisResult* imgAnalysis, TrackGeometry* track, TrackGeometry_CV *track_CV, float deltaT, GameState* gameState); //Render a frame
-
+    void Step(CameraImageData* camImage, ImageAnalysisResult* imgAnalysis, TrackGeometry* track, float deltaT, GameState* gameState); //Render a frame
+    void AdjustParameters(const int width, const int height, const ImageAnalysisResult *imgAnalysis);
     void FramebufferSizeChanged(int width, int height);
     void DrawUIwindow(const char *title, const char *content, float x, float y, float w);
 private: //Private methods
@@ -57,5 +57,4 @@ private: //Private methods
     void initUI();
     void drawUIwindowBorder(const char *title, float x, float y, float w, float h);
     void drawUIcontent(const char* content, float x, float y, float w, float h);
-    void draw_cv(const CameraImageData *image, ImageAnalysisResult *imgAnalysis, TrackGeometry_CV *track_CV);
 };

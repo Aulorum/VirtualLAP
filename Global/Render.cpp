@@ -35,7 +35,8 @@ void DebugPrint(const char* c) {
     std::cerr << c << std::endl;
 }
 
-void Render::Step(CameraImageData *camImage, ImageAnalysisResult *imgAnalysis, TrackGeometry *track, TrackGeometry_CV *track_CV, float deltaT, GameState* gameState) {
+void Render::Step(CameraImageData *camImage, ImageAnalysisResult *imgAnalysis, TrackGeometry *track, float deltaT, GameState* gameState) {
+    AdjustParameters(camImage->Width, camImage->Height, imgAnalysis);
     glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     uploadCameraImage(camImage);
@@ -66,7 +67,6 @@ void Render::Step(CameraImageData *camImage, ImageAnalysisResult *imgAnalysis, T
 
 
     std::vector<Vertex> trackVertices;
-    draw_cv(camImage, imgAnalysis, track_CV);
     auto points = _track.Extrude(_track.Discretize(track));
     for (auto &point : points) {
         trackVertices.emplace_back(point, glm::vec3(0, 0, 1), glm::vec2(0.f, 0.f));
@@ -76,6 +76,19 @@ void Render::Step(CameraImageData *camImage, ImageAnalysisResult *imgAnalysis, T
     glDeleteBuffers(1, &trackVB);
 
     renderUI(camImage, imgAnalysis, track, deltaT, gameState, points.size());
+}
+
+void Render::AdjustParameters(const int width, const int height, const ImageAnalysisResult *imgAnalysis){
+    _outputWidthPx = width;
+    _outputHeightPx = height;
+    glViewport( 0, 0, width, height );
+    auto camera = imgAnalysis->_camera;
+    if (camera.dims > 0){
+        auto f_y = camera.at<double>(1, 1);
+        _fov = tan(f_y)*2;
+    }
+    _aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+    updateProjectionMatrix();
 }
 
 void Render::FramebufferSizeChanged(int width, int height) {
@@ -321,15 +334,4 @@ void Render::renderUIrenderingDebug(const int &trackSegmentCount) {
     content << trackSegmentCount << " Track segments";
     auto loc = _renderDebugWindowLoc;
     DrawUIwindow("Render info", content.str().c_str(), loc.x, loc.y, loc.z);
-}
-
-void Render::draw_cv(const CameraImageData *image, ImageAnalysisResult *imgAnalysis, TrackGeometry_CV *track_CV){
-    auto controlPoints = track_CV->ControlPoints_CV;
-    cv::Mat inputImage(image->Height, image->Width, CV_8UC3, image->Data);
-
-    for (auto &point : controlPoints) {
-        cv::Scalar color( rand()&255, rand()&255, rand()&255 );
-        cv::line(inputImage, cv::Point_(point.First_CV[0], point.First_CV[1]),
-                cv::Point_(point.Next_CV[0], point.Next_CV[1]), color);
-    }
 }

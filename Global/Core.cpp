@@ -29,16 +29,15 @@ void Core::Step(float deltaT) {
     CameraImageData camImg = {};
     ImageAnalysisResult analysisResult = {};
     TrackGeometry track = {};
-    TrackGeometry_CV track_cv = {};
     GameState gameState =  {};
 
     captureImage(&camImg);
     _analysis.Step(&camImg, &analysisResult);
     if (analysisResult.State & ImageAnalysis_Operating) {
-        _generator.Step(&analysisResult, &track, &track_cv);
+        _generator.Step(&analysisResult, &track);
         _simulation.Step(&analysisResult, &track, deltaT, &gameState);
     }
-    _render.Step(&camImg, &analysisResult, &track, &track_cv, deltaT, &gameState);
+    _render.Step(&camImg, &analysisResult, &track, deltaT, &gameState);
 }
 
 void Core::FramebufferSizeChanged(int width, int height) {

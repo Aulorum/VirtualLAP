@@ -41,10 +41,12 @@ void ImageAnalysis::Step(const CameraImageData *cameraImage, ImageAnalysisResult
             //Always specify distances in millimeters
             time_point<system_clock> now = system_clock::now();
             auto calibAge = duration_cast<milliseconds>(now - _calibLastFrameTime);
+            cv::Mat camera;
             //if(calibAge.count() >= CALIBRATIONFRAMESPACING) {
-                _calibrate(inputImage);
+                _calibrate(inputImage, camera);
                 _calibLastFrameTime = now;
             //}
+            result->_camera = camera;
             break;
         }
         case ImageAnalysis_Operating: {
@@ -53,45 +55,7 @@ void ImageAnalysis::Step(const CameraImageData *cameraImage, ImageAnalysisResult
         }
         case ImageAnalysis_Simulating: {
             _detectMarkers(inputImage, result);
-            float clock_ms = duration_cast<milliseconds>(
-                    time_point_cast<milliseconds>(std::chrono::system_clock::now()).time_since_epoch() ).count() % (3141 * 2);
 
-
-            // Was passiert hier? TODO: Erklärung bitte
-            //auto rotate = glm::rotate(glm::mat4(1.0f), 1.0f, glm::vec3(0,0,1));
-            //glm::vec3 location = rotate * glm::vec4(1000, 0, 1000, 1);
-            // result->ViewMatrix = glm::lookAt(location, glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
-
-                        /*result->Markers.emplace_back(MarkerInfo {
-                    0, //Marker 0 always should have these properties, since it defines the origin
-                    glm::vec3(0,0,0),
-                    glm::vec3(0, 1, 0),
-                    glm::vec3(0,0,1)
-            });
-            result->Markers.emplace_back(MarkerInfo {
-                    1,
-                    glm::vec3(0,300,0),
-                    glm::vec3(0, 1, 0),
-                    glm::vec3(0,0,1)
-            });
-            result->Markers.emplace_back(MarkerInfo {
-                    2,
-                    glm::vec3(tvecs[2][0], tvecs[2][1], -tvecs[2][2]),
-                    glm::vec3(rvecs[2][0], rvecs[2][1], rvecs[2][2]),
-                    glm::vec3(0,0,1)
-            });
-            result->Markers.emplace_back(MarkerInfo {
-                    3,
-                    glm::vec3(tvecs[3][0], tvecs[3][1], -tvecs[3][2]),
-                    glm::vec3(rvecs[3][0], rvecs[3][1], rvecs[3][2]),
-                    glm::vec3(0,0,1)
-            });
-            result->Markers.emplace_back(MarkerInfo {
-                    4,
-                    glm::vec3(tvecs[4][0], tvecs[4][1], -tvecs[4][2]),
-                    glm::vec3(rvecs[4][0], rvecs[4][1], rvecs[4][2]),
-                    glm::vec3(0,0,1)
-            });*/
             break;
         }
         case ImageAnalysis_MarkerOutput: {
@@ -131,8 +95,7 @@ void ImageAnalysis::ChangeState(const ImageAnalysisState &newstate) {
     }
 }
 
-void ImageAnalysis::_calibrate(cv::Mat& cameraImage) {
-
+void ImageAnalysis::_calibrate(const cv::Mat& cameraImage, cv::Mat camera) {
     std::vector< int > markerIds;
     std::vector< std::vector< cv::Point2f > > markerCorners, markerRejected;
     cv::aruco::detectMarkers(cameraImage, _dict, markerCorners, markerIds,
@@ -164,6 +127,8 @@ void ImageAnalysis::_calibrate(cv::Mat& cameraImage) {
     _calibCurrentError = cv::aruco::calibrateCameraCharuco(_calibFramesCorners,
             _calibFramesIds, _calibBoard, cameraImage.size(), _camera, _distortion);
 
+    std::cout << _camera << " " << std::endl;
+    camera = _camera;
     if(_calibFramesIds.size() >= 20 && _calibCurrentError < 1.4) {
         _state = static_cast<ImageAnalysisState>(
                 (_state | ImageAnalysis_Operating) & ~ImageAnalysis_Calibrating);
@@ -199,16 +164,43 @@ void ImageAnalysis::_detectMarkers(cv::Mat &cameraImage, ImageAnalysisResult* re
         }
 
         cv::aruco::drawAxis(cameraImage, _camera, _distortion, rvec, tvecs[i], 20.f);
-        if (markerIds[i] < 4){
+        if (markerIds[i] < 3){
             std::cout << tvecs[i]<< " " << std::endl;
+            cv::Mat rotation;
+            cv::Mat markerMatrix = cv::Mat::zeros(4, 4, CV_64FC1);
+            cv::Rodrigues(rvecs[i], rotation);
+            for (size_t j = 0; j < 3; ++j) {
+                for (size_t k = 0; k < 3; ++k) {
+                    markerMatrix.at<double>(j, k) = rotation.at<double>(j, k);
+                }
+            }
+            markerMatrix.at<double>(0, 3) = tvecs[i][0];
+            markerMatrix.at<double>(1, 3) = tvecs[i][1];
+            markerMatrix.at<double>(2, 3) = tvecs[i][2];
+            markerMatrix.at<double>(3, 3) = 1.f;
+
+            cv::Mat cvToGl = cv::Mat::zeros(4, 4, CV_64F);
+            cvToGl.at<double>(0, 0) = 1.0f;
+            cvToGl.at<double>(1, 1) = 1.0f; // Invert the y axis
+            cvToGl.at<double>(2, 2) = -1.0f; // invert the z axis
+            cvToGl.at<double>(3, 3) = 1.0f;
+            markerMatrix = cvToGl * markerMatrix;
+
+            glm::mat4 glmMarkerMatrix = glm::mat4(1.f);
+            cv::Mat glViewMatrix = cv::Mat::zeros(4, 4, CV_64F);
+            cv::transpose(markerMatrix, glViewMatrix);
+
+
+            for (size_t j = 0; j < 4; ++j) {
+                for (size_t k = 0; k < 4; ++k) {
+                    glmMarkerMatrix[j][k] = glViewMatrix.at<double>(j, k);
+                }
+            }
+
             result->Markers.emplace_back(MarkerInfo {
                     markerIds[i],
-                    glm::vec3(tvecs[i][0], -tvecs[i][1], -tvecs[i][2]),
-                    glm::vec3(rvecs[i][0], rvecs[i][1], rvecs[i][2]),
-                    glm::vec3(0,0,1),
-                    cv::Vec3d(tvecs[i][0], tvecs[i][1], -tvecs[i][2]),
-                    rvecs[i],
-                    cv::Vec3d(0,0,1)
+                    glmMarkerMatrix,
+                    glm::vec3(0,0,2)
 
             });
         }
